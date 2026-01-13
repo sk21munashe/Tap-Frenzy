@@ -22,6 +22,7 @@ export const TapFrenzy: React.FC = () => {
     particles,
     shake,
     isNewHighScore,
+    difficultyLevel,
     containerRef,
     startGame,
     hitTarget,
@@ -56,6 +57,7 @@ export const TapFrenzy: React.FC = () => {
           streak={streak}
           lives={lives}
           maxLives={maxLives}
+          difficultyLevel={difficultyLevel}
         />
       )}
 

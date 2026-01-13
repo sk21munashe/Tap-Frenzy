@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Leaderboard } from './Leaderboard';
-import { SubmitScoreForm } from './SubmitScoreForm';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 
 interface GameOverProps {
@@ -20,26 +19,28 @@ export const GameOver: React.FC<GameOverProps> = ({
   difficultyLevel,
   onRestart,
 }) => {
-  const { leaderboard, isLoading, playerName, submitScore, fetchLeaderboard } = useLeaderboard();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { leaderboard, isLoading, submitScore, fetchLeaderboard, getPlayerName } = useLeaderboard();
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [submittedName, setSubmittedName] = useState<string | null>(null);
+
+  // Auto-submit score on mount
+  useEffect(() => {
+    const autoSubmit = async () => {
+      if (score > 0 && !hasSubmitted) {
+        const result = await submitScore(score, difficultyLevel);
+        if (result.success) {
+          setHasSubmitted(true);
+          setSubmittedName(result.playerName || getPlayerName());
+        }
+      }
+    };
+    autoSubmit();
+  }, [score, difficultyLevel, submitScore, hasSubmitted, getPlayerName]);
 
   // Refresh leaderboard on mount
   useEffect(() => {
     fetchLeaderboard();
   }, [fetchLeaderboard]);
-
-  const handleSubmitScore = async (name: string) => {
-    setIsSubmitting(true);
-    const result = await submitScore(score, difficultyLevel, name);
-    setIsSubmitting(false);
-    
-    if (result.success) {
-      setHasSubmitted(true);
-      setShowLeaderboard(true);
-    }
-  };
 
   return (
     <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex items-center justify-center z-20 overflow-y-auto">
@@ -81,24 +82,20 @@ export const GameOver: React.FC<GameOverProps> = ({
           </div>
         </div>
 
-        {/* Submit Score or Show Leaderboard */}
-        {!hasSubmitted && score > 0 ? (
-          <div className="pt-2">
-            <SubmitScoreForm
-              defaultName={playerName}
-              onSubmit={handleSubmitScore}
-              isSubmitting={isSubmitting}
-            />
+        {/* Leaderboard with submitted name indicator */}
+        {submittedName && (
+          <div className="text-sm text-muted-foreground">
+            Submitted as: <span className="text-primary font-semibold">{submittedName}</span>
           </div>
-        ) : (
-          <Leaderboard 
-            entries={leaderboard} 
-            isLoading={isLoading}
-            highlightScore={hasSubmitted ? score : undefined}
-          />
         )}
+        
+        <Leaderboard 
+          entries={leaderboard} 
+          isLoading={isLoading}
+          highlightScore={hasSubmitted ? score : undefined}
+        />
 
-        <div className="pt-2 space-y-3">
+        <div className="pt-2">
           <Button
             variant="game"
             size="lg"
@@ -106,17 +103,6 @@ export const GameOver: React.FC<GameOverProps> = ({
           >
             Play Again
           </Button>
-
-          {!showLeaderboard && hasSubmitted && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowLeaderboard(true)}
-              className="text-muted-foreground"
-            >
-              View Leaderboard
-            </Button>
-          )}
         </div>
 
         <p className="text-muted-foreground text-xs">

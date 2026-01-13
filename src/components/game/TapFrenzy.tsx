@@ -6,7 +6,6 @@ import { ScorePopup } from './ScorePopup';
 import { GameHUD } from './GameHUD';
 import { StartScreen } from './StartScreen';
 import { GameOver } from './GameOver';
-import { SettingsDialog } from './SettingsDialog';
 import { cn } from '@/lib/utils';
 
 export const TapFrenzy: React.FC = () => {
@@ -37,8 +36,6 @@ export const TapFrenzy: React.FC = () => {
         shake && 'screen-shake'
       )}
     >
-      {/* Settings Button */}
-      <SettingsDialog />
 
       {/* Background grid effect */}
       <div 

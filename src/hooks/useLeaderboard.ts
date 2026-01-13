@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { generateRandomName } from '@/lib/randomName';
 
 interface LeaderboardEntry {
   id: string;
@@ -14,10 +15,11 @@ const PLAYER_NAME_KEY = 'tap-frenzy-player-name';
 export const useLeaderboard = () => {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [playerName, setPlayerName] = useState(() => {
-    return localStorage.getItem(PLAYER_NAME_KEY) || '';
-  });
   const [playerRank, setPlayerRank] = useState<number | null>(null);
+
+  const getPlayerName = useCallback(() => {
+    return localStorage.getItem(PLAYER_NAME_KEY) || generateRandomName();
+  }, []);
 
   const fetchLeaderboard = useCallback(async () => {
     setIsLoading(true);
@@ -37,18 +39,14 @@ export const useLeaderboard = () => {
     }
   }, []);
 
-  const submitScore = useCallback(async (score: number, difficultyReached: number, name: string) => {
-    if (!name.trim()) return { success: false, error: 'Name required' };
-
-    // Save name for future games
-    localStorage.setItem(PLAYER_NAME_KEY, name);
-    setPlayerName(name);
+  const submitScore = useCallback(async (score: number, difficultyReached: number) => {
+    const name = getPlayerName();
 
     try {
       const { data, error } = await supabase
         .from('leaderboard')
         .insert({
-          player_name: name.trim().slice(0, 20),
+          player_name: name.slice(0, 20),
           score,
           difficulty_reached: difficultyReached,
         })
@@ -60,12 +58,12 @@ export const useLeaderboard = () => {
       // Refresh leaderboard and find player's rank
       await fetchLeaderboard();
       
-      return { success: true, data };
+      return { success: true, data, playerName: name };
     } catch (err) {
       console.error('Failed to submit score:', err);
       return { success: false, error: 'Failed to submit score' };
     }
-  }, [fetchLeaderboard]);
+  }, [fetchLeaderboard, getPlayerName]);
 
   const getPlayerRank = useCallback(async (score: number) => {
     try {
@@ -91,11 +89,10 @@ export const useLeaderboard = () => {
   return {
     leaderboard,
     isLoading,
-    playerName,
     playerRank,
     fetchLeaderboard,
     submitScore,
     getPlayerRank,
-    setPlayerName,
+    getPlayerName,
   };
 };

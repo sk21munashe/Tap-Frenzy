@@ -13,11 +13,12 @@ export const StartScreen: React.FC<StartScreenProps> = ({ highScore, onStart }) 
   const { leaderboard, isLoading } = useLeaderboard();
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center z-20 overflow-y-auto">
+    <div className="absolute inset-0 z-20 overflow-y-auto">
       {/* Settings Button */}
       <SettingsDialog />
       
-      <div className="text-center space-y-6 p-6 my-4">
+      <div className="min-h-full flex items-center justify-center py-6">
+        <div className="text-center space-y-6 p-6">
         <div className="space-y-4">
           <h1 className="font-display text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-neon-yellow">
             TAP FRENZY
@@ -71,6 +72,7 @@ export const StartScreen: React.FC<StartScreenProps> = ({ highScore, onStart }) 
             <div className="w-6 h-6 rounded-full bg-neon-yellow mx-auto mb-1" style={{ boxShadow: '0 0 20px hsl(50 100% 50% / 0.6)' }} />
             <div className="text-xs text-muted-foreground">50 pts</div>
           </div>
+        </div>
         </div>
       </div>
     </div>

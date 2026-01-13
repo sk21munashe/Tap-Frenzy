@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Leaderboard } from './Leaderboard';
+import { SettingsDialog } from './SettingsDialog';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 
 interface StartScreenProps {
@@ -13,6 +14,9 @@ export const StartScreen: React.FC<StartScreenProps> = ({ highScore, onStart }) 
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-20 overflow-y-auto">
+      {/* Settings Button */}
+      <SettingsDialog />
+      
       <div className="text-center space-y-6 p-6 my-4">
         <div className="space-y-4">
           <h1 className="font-display text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-neon-yellow">

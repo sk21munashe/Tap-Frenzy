@@ -44,11 +44,12 @@ export const GameOver: React.FC<GameOverProps> = ({
   }, [fetchLeaderboard]);
 
   return (
-    <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex items-center justify-center z-20 overflow-y-auto">
+    <div className="absolute inset-0 bg-background/90 backdrop-blur-sm z-20 overflow-y-auto">
       {/* Settings Button */}
       <SettingsDialog />
       
-      <div className="text-center space-y-6 p-6 max-w-lg w-full my-4">
+      <div className="min-h-full flex items-center justify-center py-6">
+        <div className="text-center space-y-6 p-6 max-w-lg w-full">
         <div className="space-y-2">
           <h2 className="font-display text-2xl text-muted-foreground uppercase tracking-widest">
             Game Over
@@ -112,6 +113,7 @@ export const GameOver: React.FC<GameOverProps> = ({
         <p className="text-muted-foreground text-xs">
           Press SPACE to restart
         </p>
+        </div>
       </div>
     </div>
   );

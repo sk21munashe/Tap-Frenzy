@@ -8,7 +8,10 @@ interface GameHUDProps {
   streak: number;
   lives: number;
   maxLives: number;
+  difficultyLevel?: number;
 }
+
+const DIFFICULTY_NAMES = ['EASY', 'WARM UP', 'NORMAL', 'FAST', 'INTENSE', 'INSANE', 'GODLIKE'];
 
 export const GameHUD: React.FC<GameHUDProps> = ({
   score,
@@ -17,6 +20,7 @@ export const GameHUD: React.FC<GameHUDProps> = ({
   streak,
   lives,
   maxLives,
+  difficultyLevel = 0,
 }) => {
   return (
     <div className="absolute inset-x-0 top-0 p-4 flex justify-between items-start pointer-events-none z-10">
@@ -45,19 +49,31 @@ export const GameHUD: React.FC<GameHUDProps> = ({
         )}
       </div>
 
-      {/* Right side - Lives */}
-      <div className="flex gap-1">
-        {Array.from({ length: maxLives }).map((_, i) => (
-          <div
-            key={i}
-            className={cn(
-              'w-4 h-4 rounded-full transition-all duration-300',
-              i < lives 
-                ? 'bg-destructive shadow-[0_0_10px_hsl(var(--destructive))]' 
-                : 'bg-muted'
-            )}
-          />
-        ))}
+      {/* Right side - Lives & Difficulty */}
+      <div className="flex flex-col items-end gap-2">
+        <div className="flex gap-1">
+          {Array.from({ length: maxLives }).map((_, i) => (
+            <div
+              key={i}
+              className={cn(
+                'w-4 h-4 rounded-full transition-all duration-300',
+                i < lives 
+                  ? 'bg-destructive shadow-[0_0_10px_hsl(var(--destructive))]' 
+                  : 'bg-muted'
+              )}
+            />
+          ))}
+        </div>
+        {difficultyLevel > 0 && (
+          <div className={cn(
+            'text-xs font-display tracking-widest px-2 py-0.5 rounded animate-pulse',
+            difficultyLevel >= 5 ? 'bg-destructive/20 text-destructive' : 
+            difficultyLevel >= 3 ? 'bg-neon-yellow/20 text-neon-yellow' : 
+            'bg-primary/20 text-primary'
+          )}>
+            {DIFFICULTY_NAMES[difficultyLevel] || `LVL ${difficultyLevel}`}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useSoundEffects } from './useSoundEffects';
 
 interface Target {
   id: string;
@@ -33,13 +34,24 @@ type GameState = 'start' | 'playing' | 'gameOver';
 const STORAGE_KEY = 'tap-frenzy-high-score';
 const MAX_LIVES = 3;
 const BASE_SPAWN_RATE = 1500;
-const MIN_SPAWN_RATE = 400;
+const MIN_SPAWN_RATE = 300;
 const COMBO_TIMEOUT = 1500;
 
+// Difficulty scaling thresholds
+const DIFFICULTY_LEVELS = [
+  { score: 0, spawnMultiplier: 1.0, lifetimeMultiplier: 1.0 },
+  { score: 200, spawnMultiplier: 0.85, lifetimeMultiplier: 0.9 },
+  { score: 500, spawnMultiplier: 0.7, lifetimeMultiplier: 0.8 },
+  { score: 1000, spawnMultiplier: 0.55, lifetimeMultiplier: 0.7 },
+  { score: 2000, spawnMultiplier: 0.45, lifetimeMultiplier: 0.6 },
+  { score: 3500, spawnMultiplier: 0.35, lifetimeMultiplier: 0.5 },
+  { score: 5000, spawnMultiplier: 0.3, lifetimeMultiplier: 0.45 },
+];
+
 const TARGET_CONFIGS = [
-  { color: 'cyan' as const, points: 10, size: 60, weight: 60, lifetime: 2000 },
-  { color: 'magenta' as const, points: 25, size: 50, weight: 30, lifetime: 1500 },
-  { color: 'yellow' as const, points: 50, size: 40, weight: 10, lifetime: 1000 },
+  { color: 'cyan' as const, points: 10, size: 60, weight: 60, lifetime: 2200 },
+  { color: 'magenta' as const, points: 25, size: 50, weight: 30, lifetime: 1700 },
+  { color: 'yellow' as const, points: 50, size: 40, weight: 10, lifetime: 1200 },
 ];
 
 export const useGame = () => {
@@ -57,13 +69,31 @@ export const useGame = () => {
   const [particles, setParticles] = useState<Particle[]>([]);
   const [shake, setShake] = useState(false);
   const [isNewHighScore, setIsNewHighScore] = useState(false);
+  const [difficultyLevel, setDifficultyLevel] = useState(0);
 
   const comboTimeoutRef = useRef<number | undefined>(undefined);
   const spawnIntervalRef = useRef<number | undefined>(undefined);
   const gameLoopRef = useRef<number | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastDifficultyRef = useRef(0);
 
-  const getRandomTarget = useCallback((): Omit<Target, 'id' | 'createdAt'> => {
+  const { playSound } = useSoundEffects();
+
+  // Get current difficulty settings based on score
+  const getDifficulty = useCallback((currentScore: number) => {
+    let level = DIFFICULTY_LEVELS[0];
+    let levelIndex = 0;
+    for (let i = DIFFICULTY_LEVELS.length - 1; i >= 0; i--) {
+      if (currentScore >= DIFFICULTY_LEVELS[i].score) {
+        level = DIFFICULTY_LEVELS[i];
+        levelIndex = i;
+        break;
+      }
+    }
+    return { ...level, levelIndex };
+  }, []);
+
+  const getRandomTarget = useCallback((currentScore: number): Omit<Target, 'id' | 'createdAt'> => {
     const totalWeight = TARGET_CONFIGS.reduce((sum: number, t) => sum + t.weight, 0);
     let random = Math.random() * totalWeight;
     
@@ -81,18 +111,22 @@ export const useGame = () => {
     const maxX = (container?.clientWidth || 400) - config.size - padding;
     const maxY = (container?.clientHeight || 600) - config.size - padding * 2;
 
+    // Apply difficulty scaling to lifetime
+    const difficulty = getDifficulty(currentScore);
+    const scaledLifetime = Math.round(config.lifetime * difficulty.lifetimeMultiplier);
+
     return {
       x: padding + Math.random() * Math.max(100, maxX),
       y: padding + Math.random() * Math.max(100, maxY),
       size: config.size,
       color: config.color,
       points: config.points,
-      lifetime: config.lifetime,
+      lifetime: scaledLifetime,
     };
-  }, []);
+  }, [getDifficulty]);
 
-  const spawnTarget = useCallback(() => {
-    const target = getRandomTarget();
+  const spawnTarget = useCallback((currentScore: number) => {
+    const target = getRandomTarget(currentScore);
     const newTarget: Target = {
       ...target,
       id: Math.random().toString(36).substr(2, 9),
@@ -129,6 +163,14 @@ export const useGame = () => {
     const multiplier = Math.min(newCombo, 10);
     const points = target.points * multiplier;
 
+    // Play appropriate sound
+    const pitchMap = { cyan: 1, magenta: 1.2, yellow: 1.5 };
+    if (newCombo >= 5 && newCombo % 5 === 0) {
+      playSound('combo', 1 + (newCombo / 20));
+    } else {
+      playSound('tap', pitchMap[target.color]);
+    }
+
     setScore((prev) => prev + points);
     setCombo(newCombo);
     setStreak((prev) => prev + 1);
@@ -164,14 +206,15 @@ export const useGame = () => {
     comboTimeoutRef.current = window.setTimeout(() => {
       setCombo(0);
     }, COMBO_TIMEOUT);
-  }, [targets, combo, createParticles]);
+  }, [targets, combo, createParticles, playSound]);
 
   const missTarget = useCallback((id: string) => {
     setTargets((prev) => prev.filter((t) => t.id !== id));
     setLives((prev) => prev - 1);
     setCombo(0);
     setStreak(0);
-  }, []);
+    playSound('miss');
+  }, [playSound]);
 
   const startGame = useCallback(() => {
     setGameState('playing');
@@ -181,10 +224,13 @@ export const useGame = () => {
     setStreak(0);
     setTargets([]);
     setIsNewHighScore(false);
+    setDifficultyLevel(0);
+    lastDifficultyRef.current = 0;
   }, []);
 
   const endGame = useCallback(() => {
     setGameState('gameOver');
+    playSound('gameOver');
     
     if (score > highScore) {
       setHighScore(score);
@@ -194,7 +240,7 @@ export const useGame = () => {
 
     if (spawnIntervalRef.current) clearInterval(spawnIntervalRef.current);
     if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
-  }, [score, highScore]);
+  }, [score, highScore, playSound]);
 
   // Game loop
   useEffect(() => {
@@ -219,17 +265,20 @@ export const useGame = () => {
     };
   }, [gameState, missTarget]);
 
-  // Spawn targets
+  // Spawn targets with progressive difficulty
   useEffect(() => {
     if (gameState !== 'playing') return;
 
+    const scoreRef = { current: score };
+    
     const getSpawnRate = () => {
-      const difficulty = Math.min(score / 1000, 1);
-      return BASE_SPAWN_RATE - difficulty * (BASE_SPAWN_RATE - MIN_SPAWN_RATE);
+      const difficulty = getDifficulty(scoreRef.current);
+      return BASE_SPAWN_RATE * difficulty.spawnMultiplier;
     };
 
     const scheduleSpawn = () => {
-      spawnTarget();
+      scoreRef.current = score;
+      spawnTarget(score);
       spawnIntervalRef.current = window.setTimeout(scheduleSpawn, getSpawnRate());
     };
 
@@ -238,7 +287,19 @@ export const useGame = () => {
     return () => {
       if (spawnIntervalRef.current) clearTimeout(spawnIntervalRef.current);
     };
-  }, [gameState, score, spawnTarget]);
+  }, [gameState, score, spawnTarget, getDifficulty]);
+
+  // Check for difficulty level up
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+    
+    const difficulty = getDifficulty(score);
+    if (difficulty.levelIndex > lastDifficultyRef.current) {
+      lastDifficultyRef.current = difficulty.levelIndex;
+      setDifficultyLevel(difficulty.levelIndex);
+      playSound('levelUp');
+    }
+  }, [score, gameState, getDifficulty, playSound]);
 
   // Check game over
   useEffect(() => {
@@ -275,6 +336,7 @@ export const useGame = () => {
     particles,
     shake,
     isNewHighScore,
+    difficultyLevel,
     containerRef,
     startGame,
     hitTarget,

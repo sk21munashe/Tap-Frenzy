@@ -110,6 +110,7 @@ export const TapFrenzy: React.FC = () => {
           score={score}
           highScore={highScore}
           isNewHighScore={isNewHighScore}
+          difficultyLevel={difficultyLevel}
           onRestart={startGame}
         />
       )}

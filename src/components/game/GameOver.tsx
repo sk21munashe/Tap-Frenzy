@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Leaderboard } from './Leaderboard';
+import { SettingsDialog } from './SettingsDialog';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 
 interface GameOverProps {
@@ -44,6 +45,9 @@ export const GameOver: React.FC<GameOverProps> = ({
 
   return (
     <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex items-center justify-center z-20 overflow-y-auto">
+      {/* Settings Button */}
+      <SettingsDialog />
+      
       <div className="text-center space-y-6 p-6 max-w-lg w-full my-4">
         <div className="space-y-2">
           <h2 className="font-display text-2xl text-muted-foreground uppercase tracking-widest">
